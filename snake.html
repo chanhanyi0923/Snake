@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Snake</title>
+    <style>
+.container {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+.button {
+  background-color: HotPink; /* Green */
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  border-radius: 16px;
+}
+.button:hover {
+  background-color: MediumVioletRed;
+}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Snake</h1>
+      <div>
+        <a href="#" id="startButton" class="button">Start</a>
+        <span style="margin: 10px;">
+          Score: <span id="score"></span>
+        </span>
+      </div>
+      <br>
+      <div style="display:inline-block">
+        <canvas id="game" width="500px" height="500px" style="width:500px; height:500px"></canvas>
+      </div>
+    </div>
+  <script type="text/javascript">
+
+class CanvasManager {
+  constructor(canvasId) {
+    this.gameCanvas = document.getElementById(canvasId);
+    this.gameCtx = this.gameCanvas.getContext('2d');
+    // constants:
+    this.canvasWidth = this.gameCanvas.width;
+    this.canvasHeight = this.gameCanvas.height;
+    this.gridWidth = 10;
+    this.xMax_ = this.canvasWidth / this.gridWidth;
+    this.yMax_ = this.canvasHeight / this.gridWidth;
+  }
+  get xMax() {
+      return this.xMax_;
+  }
+  get yMax() {
+      return this.yMax_;
+  }
+  setFillStyle(color) {
+    this.gameCtx.fillStyle = color;
+  }
+  clear() {
+    this.gameCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+  }
+  renderGrid(point) {
+    this.gameCtx.fillRect(this.gridWidth * point.x, this.gridWidth * point.y, this.gridWidth, this.gridWidth);
+  }
+  renderBackground() {
+    // for debug
+    // this.gameCtx.strokeStyle = 'Gray';
+    // for (let i = 0; i <= this.xMax; i ++) {
+    //   this.gameCtx.moveTo(i * this.gridWidth, 0);
+    //   this.gameCtx.lineTo(i * this.gridWidth, this.canvasHeight);
+    //   this.gameCtx.stroke();
+    // }
+    // for (let j = 0; j <= this.yMax; j ++) {
+    //   this.gameCtx.moveTo(0, j * this.gridWidth);
+    //   this.gameCtx.lineTo(this.canvasWidth, j * this.gridWidth);
+    //   this.gameCtx.stroke();
+    // }
+
+    // render wall
+    this.setFillStyle('Brown');
+    this.gameCtx.fillRect(0, 0, this.gridWidth, this.yMax * this.gridWidth);
+    this.gameCtx.fillRect((this.xMax - 1) * this.gridWidth, 0, this.gridWidth, this.yMax * this.gridWidth);
+    this.gameCtx.fillRect(this.gridWidth, 0, (this.xMax - 2) * this.gridWidth, this.gridWidth);
+    this.gameCtx.fillRect(this.gridWidth, (this.yMax - 1) * this.gridWidth, (this.xMax - 2) * this.gridWidth, this.gridWidth);
+  }
+}
+
+class Point {
+  constructor(x, y) {
+    this.x_ = x;
+    this.y_ = y;
+  }
+  get x() {
+    return this.x_;
+  }
+  get y() {
+    return this.y_;
+  }
+  equals(point) {
+    return point.x === this.x && point.y === this.y;
+  }
+}
+
+class Snake {
+  constructor(xMax, yMax) {
+    this.food = new Point(10, 10);
+    this.direction = new Point(0, 1);
+    this.head = new Point(3, 6);
+    this.score_ = 0;
+    this.body = [
+      new Point(3, 2),
+      new Point(3, 3),
+      new Point(3, 4),
+      new Point(3, 5),
+      new Point(3, 6),
+    ];
+    this.xMax = xMax;
+    this.yMax = yMax;
+  }
+  get score() {
+    return this.score_;
+  }
+  set score(score_) {
+    this.score_ = score_;
+    document.getElementById('score').innerHTML = score_;
+  }
+  changeDirection(keyCode) {
+    const directions = {
+      38: new Point(0, -1), // up arrow
+      40: new Point(0, 1),  // down arrow
+      37: new Point(-1, 0), // left arrow
+      39: new Point(1, 0),  // right arrow
+    };
+    if (!(this.direction.x === -directions[keyCode].x || this.direction.y === -directions[keyCode].y)) {
+      this.direction = directions[keyCode];
+    }
+  }
+  move() {
+    let loss = false;
+    let headExpected = new Point(this.head.x + this.direction.x, this.head.y + this.direction.y);
+    // check body
+    for (let i = 1; i < this.body.length; i ++) {
+      if (headExpected.equals(this.body[i])) {
+        loss = true;
+        break;
+      }
+    }
+    // check wall
+    if (headExpected.x === 0 || headExpected.x === this.xMax - 1||
+        headExpected.y === 0 || headExpected.y === this.yMax - 1) {
+      loss = true;
+    }
+    if (loss) {
+      start = false;
+    } else {
+      this.head = headExpected;
+      this.body.push(this.head);
+      if (this.food.equals(headExpected)) {
+        this.score ++;
+        for (let inBody = true; inBody;) {
+          this.food = new Point(
+            Math.floor(Math.random() * (this.xMax - 3)) + 1,
+            Math.floor(Math.random() * (this.yMax - 3)) + 1
+          );
+          inBody = false;
+          this.body.every((point) => {
+            if (point.equals(this.food)) {
+              inBody = true;
+              return false;
+            }
+          });
+        }
+      } else {
+        this.body.shift();
+      }
+    }
+  }
+  render(manager) {
+    manager.setFillStyle('Red');
+    manager.renderGrid(this.food);
+    manager.setFillStyle('GreenYellow');
+    this.body.forEach(function (point) {
+      manager.renderGrid(point);
+    });
+  }
+}
+
+let start = false;
+let manager = new CanvasManager('game');
+let snake = new Snake(manager.xMax, manager.yMax);
+
+function stopGame() {
+  start = false;
+}
+
+function main() {
+  document.getElementById('score').innerHTML = 0;
+
+  manager.clear();
+  manager.renderBackground();
+  setInterval(() => {
+    // main loop
+    if (start) {
+      manager.clear();
+      manager.renderBackground();
+      snake.move();
+      snake.render(manager);
+    }
+  }, 60);
+
+  document.addEventListener('keydown', (e) => {
+    snake.changeDirection(e.keyCode);
+  });
+
+  document.getElementById('startButton').addEventListener('click', () => {
+    start = true;
+    snake = new Snake(manager.xMax, manager.yMax);
+  });
+}
+main();
+    </script>
+  </body>
+</html>
