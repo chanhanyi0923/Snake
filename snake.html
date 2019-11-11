@@ -31,16 +31,30 @@
       <h1>Snake</h1>
       <div>
         <a href="#" id="startButton" class="button">Start</a>
-        <span style="margin: 10px;">
+        <span style="margin: 10px">
           Score: <span id="score"></span>
+        </span>
+        <br>
+        <span style="margin: 20px; color: red">
+          Direction: <span id="direction"></span>
         </span>
       </div>
       <br>
       <div style="display:inline-block">
+        <video id="cameraPlayer" width="320" height="240" controls autoplay></video>
+      </div>
+      <div style="display:inline-block">
         <canvas id="game" width="500px" height="500px" style="width:500px; height:500px"></canvas>
       </div>
+      <div style="display: inline-block">
+        <canvas id="cameraSnapshot" width="320" height="240"></canvas>
+      </div>
     </div>
+  <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.4.1.min.js"></script>
   <script type="text/javascript">
+
+const cameraPlayer = document.getElementById('cameraPlayer'); 
+const snapshotCanvas = document.getElementById('cameraSnapshot');
 
 class CanvasManager {
   constructor(canvasId) {
@@ -199,7 +213,48 @@ function stopGame() {
   start = false;
 }
 
+function sendDirectionImage() {
+  const apiUrl = '';
+  const predictionKey = '';
+
+  let context = snapshotCanvas.getContext('2d');
+  context.drawImage(cameraPlayer, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+
+  snapshotCanvas.toBlob(function(blob) {
+    $.ajax({
+      type: "POST",
+      beforeSend: function(request) {
+        request.setRequestHeader("Prediction-Key", predictionKey);
+        request.setRequestHeader('Content-Type', 'multipart/form-data');
+      },
+      url: apiUrl,
+      data: blob,
+      processData: false,
+      success: (msg) => {
+        const tag = msg.predictions[0].tagName;
+        const keyCodeMapper = {'up': 38, 'down': 40, 'left': 37, 'right': 39};
+        //console.log(keyCodeMapper[tag]);
+        document.getElementById('direction').innerHTML = tag;
+        snake.changeDirection(keyCodeMapper[tag]);
+        //console.log(msg);
+        //console.log(tag);
+        //console.log("!!!!");
+      },
+      error: (msg) => {
+        console.log(msg);
+        console.log("request error");
+      }
+    });
+  });
+}
+
 function main() {
+  // init camera
+  navigator.mediaDevices.getUserMedia({video: true}).then(function(stream) {
+    cameraPlayer.srcObject = stream;
+  });
+
+  // init game
   document.getElementById('score').innerHTML = 0;
 
   manager.clear();
@@ -207,16 +262,18 @@ function main() {
   setInterval(() => {
     // main loop
     if (start) {
+      sendDirectionImage();
+      //
       manager.clear();
       manager.renderBackground();
       snake.move();
       snake.render(manager);
     }
-  }, 60);
+  }, 1000);
 
-  document.addEventListener('keydown', (e) => {
-    snake.changeDirection(e.keyCode);
-  });
+  //document.addEventListener('keydown', (e) => {
+  //  snake.changeDirection(e.keyCode);
+  //});
 
   document.getElementById('startButton').addEventListener('click', () => {
     start = true;
