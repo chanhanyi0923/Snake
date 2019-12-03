@@ -83,19 +83,6 @@ class CanvasManager {
     this.gameCtx.fillRect(this.gridWidth * point.x, this.gridWidth * point.y, this.gridWidth, this.gridWidth);
   }
   renderBackground() {
-    // for debug
-    // this.gameCtx.strokeStyle = 'Gray';
-    // for (let i = 0; i <= this.xMax; i ++) {
-    //   this.gameCtx.moveTo(i * this.gridWidth, 0);
-    //   this.gameCtx.lineTo(i * this.gridWidth, this.canvasHeight);
-    //   this.gameCtx.stroke();
-    // }
-    // for (let j = 0; j <= this.yMax; j ++) {
-    //   this.gameCtx.moveTo(0, j * this.gridWidth);
-    //   this.gameCtx.lineTo(this.canvasWidth, j * this.gridWidth);
-    //   this.gameCtx.stroke();
-    // }
-
     // render wall
     this.setFillStyle('Brown');
     this.gameCtx.fillRect(0, 0, this.gridWidth, this.yMax * this.gridWidth);
@@ -125,14 +112,14 @@ class Snake {
   constructor(xMax, yMax) {
     this.food = new Point(10, 10);
     this.direction = new Point(0, 1);
-    this.head = new Point(3, 6);
+    this.head = new Point(13, 13);
     this.score_ = 0;
     this.body = [
-      new Point(3, 2),
-      new Point(3, 3),
-      new Point(3, 4),
-      new Point(3, 5),
-      new Point(3, 6),
+      new Point(13, 9),
+      new Point(13, 10),
+      new Point(13, 11),
+      new Point(13, 12),
+      new Point(13, 13),
     ];
     this.xMax = xMax;
     this.yMax = yMax;
@@ -232,13 +219,11 @@ function sendDirectionImage() {
       processData: false,
       success: (msg) => {
         const tag = msg.predictions[0].tagName;
-        const keyCodeMapper = {'up': 38, 'down': 40, 'left': 37, 'right': 39};
-        //console.log(keyCodeMapper[tag]);
-        document.getElementById('direction').innerHTML = tag;
-        snake.changeDirection(keyCodeMapper[tag]);
-        //console.log(msg);
-        //console.log(tag);
-        //console.log("!!!!");
+        if (msg.predictions[0].probability > 0.1) {
+            const keyCodeMapper = {'up': 38, 'down': 40, 'left': 37, 'right': 39};
+            document.getElementById('direction').innerHTML = tag;
+            snake.changeDirection(keyCodeMapper[tag]);
+        }
       },
       error: (msg) => {
         console.log(msg);
@@ -269,8 +254,9 @@ function main() {
       snake.move();
       snake.render(manager);
     }
-  }, 1000);
+  }, 1500);
 
+  // you can play game with keyboard
   //document.addEventListener('keydown', (e) => {
   //  snake.changeDirection(e.keyCode);
   //});
